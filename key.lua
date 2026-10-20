@@ -6,6 +6,7 @@
     YouTube: https://youtube.com/@OYBOfficial
     Discord: https://discord.gg/kT55J724BK
     ================================================================
+    BLAIR HUB - V2 UI
 ]]
 local Config = {
     -- [1] PlatoBoost Settings
@@ -59,7 +60,6 @@ local function safeRequest(options)
     if success and type(response) == "table" then 
         return response 
     else 
-       
         return nil, "Connection Error: " .. tostring(response or "Unknown") 
     end
 end
@@ -92,7 +92,7 @@ end
 local function cacheLink()
     local isConnected = checkConnectivity()
     if not isConnected then
-        return false, "Delta/Network Error! Use VPN or change Executor."
+        return false, "Network Error! Use VPN or change Executor."
     end
     
     if cachedTime + (10*60) < fOsTime() then
@@ -115,6 +115,7 @@ local function cacheLink()
     return true, cachedLink
 end
 
+-- Kapag mali ang key, laging "Invalid Key" ang lalabas.
 local function redeemKey(key)
     local nonce = generateNonce()
     local body = {identifier = lDigest(fGetHwid()), key = key}
@@ -128,8 +129,8 @@ local function redeemKey(key)
     })
     
     if response and response.StatusCode == 200 then
-        local decoded = lDecode(response.Body)
-        if decoded.success and decoded.data.valid then
+        local ok, decoded = pcall(lDecode, response.Body)
+        if ok and type(decoded) == "table" and decoded.success and decoded.data and decoded.data.valid then
             if useNonce then
                 if decoded.data.hash == lDigest("true" .. "-" .. nonce .. "-" .. Config.PlatoSecret) then 
                     if writefile then writefile(Config.KeyFileName, key) end
@@ -140,7 +141,7 @@ local function redeemKey(key)
             if writefile then writefile(Config.KeyFileName, key) end
             return true, "Success"
         end
-        return false, decoded.message or "Invalid Key"
+        return false, "Invalid Key"
     end
     return false, err or "Server Error"
 end
@@ -164,146 +165,337 @@ local function StartMainScript()
 end
 
 -------------------------------------------------------------------------------
---! BLAIR THEME GUI
+--! BLAIR HUB V2 GUI
 -------------------------------------------------------------------------------
 
 local function CreateGUI()
     local player = game:GetService("Players").LocalPlayer
     local coreGui = game:GetService("CoreGui")
     local TweenService = game:GetService("TweenService")
+    local UserInputService = game:GetService("UserInputService")
     local targetParent = pcall(function() return coreGui end) and coreGui or player:WaitForChild("PlayerGui")
 
     if targetParent:FindFirstChild("OYB_KeySystem") then targetParent.OYB_KeySystem:Destroy() end
 
-    -- BLAIR COLOR PALETTE (dito mo palitan ang kulay kung gusto mo)
+    -- COLOR PALETTE
     local Theme = {
-        Background  = Color3.fromRGB(10, 8, 14),
-        Panel       = Color3.fromRGB(20, 15, 28),
-        Input       = Color3.fromRGB(26, 19, 36),
-        Crimson     = Color3.fromRGB(176, 28, 62),
-        Purple      = Color3.fromRGB(122, 62, 186),
-        Text        = Color3.fromRGB(235, 225, 240),
-        SubText     = Color3.fromRGB(150, 135, 165),
-        Success     = Color3.fromRGB(110, 220, 160),
-        Error       = Color3.fromRGB(235, 70, 90),
-        Warn        = Color3.fromRGB(240, 170, 80),
+        Background  = Color3.fromRGB(9, 7, 13),
+        Panel       = Color3.fromRGB(19, 14, 27),
+        Input       = Color3.fromRGB(24, 17, 34),
+        Crimson     = Color3.fromRGB(190, 30, 70),
+        Purple      = Color3.fromRGB(125, 60, 195),
+        Pink        = Color3.fromRGB(235, 80, 140),
+        Text        = Color3.fromRGB(240, 230, 245),
+        SubText     = Color3.fromRGB(150, 135, 168),
+        Success     = Color3.fromRGB(100, 230, 160),
+        Error       = Color3.fromRGB(240, 65, 90),
+        Warn        = Color3.fromRGB(245, 175, 80),
     }
+
+    local function Tween(obj, time, props, style, dir)
+        local t = TweenService:Create(obj, TweenInfo.new(time, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props)
+        t:Play()
+        return t
+    end
+
+    local function Corner(parent, r)
+        local c = Instance.new("UICorner", parent)
+        c.CornerRadius = UDim.new(0, r)
+        return c
+    end
 
     local ScreenGui = Instance.new("ScreenGui", targetParent)
     ScreenGui.Name = "OYB_KeySystem"
     ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
+    ---------------------------------------------------------------------------
+    -- MAIN FRAME
+    ---------------------------------------------------------------------------
     local MainFrame = Instance.new("Frame", ScreenGui)
-    MainFrame.Size = UDim2.new(0, 340, 0, 420)
-    MainFrame.Position = UDim2.new(0.5, -170, 0.5, -210)
+    MainFrame.Name = "Main"
+    MainFrame.Size = UDim2.new(0, 360, 0, 420)
+    MainFrame.Position = UDim2.new(0.5, -180, 0.5, -210)
     MainFrame.BackgroundColor3 = Theme.Background
     MainFrame.BorderSizePixel = 0
-    MainFrame.Active = true
-    MainFrame.Draggable = true
-    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+    MainFrame.ClipsDescendants = true
+    Corner(MainFrame, 16)
+
+    local Scale = Instance.new("UIScale", MainFrame)
+    Scale.Scale = 0.6
 
     local bgGradient = Instance.new("UIGradient", MainFrame)
     bgGradient.Rotation = 90
     bgGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(26, 14, 34)),
-        ColorSequenceKeypoint.new(1, Theme.Background),
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(32, 14, 40)),
+        ColorSequenceKeypoint.new(0.5, Theme.Background),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 8, 24)),
     })
 
-    -- Glowing border (crimson <-> purple pulse)
+    -- Animated rotating neon border
     local mainStroke = Instance.new("UIStroke", MainFrame)
-    mainStroke.Thickness = 2
+    mainStroke.Thickness = 2.5
     mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    mainStroke.Color = Theme.Crimson
+    mainStroke.Color = Color3.new(1, 1, 1)
+    local strokeGrad = Instance.new("UIGradient", mainStroke)
+    strokeGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.Crimson),
+        ColorSequenceKeypoint.new(0.35, Theme.Purple),
+        ColorSequenceKeypoint.new(0.65, Theme.Pink),
+        ColorSequenceKeypoint.new(1, Theme.Crimson),
+    })
     task.spawn(function()
-        while MainFrame.Parent do
-            TweenService:Create(mainStroke, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {Color = Theme.Purple}):Play()
-            task.wait(1.8)
-            TweenService:Create(mainStroke, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {Color = Theme.Crimson}):Play()
-            task.wait(1.8)
+        local rot = 0
+        while ScreenGui.Parent do
+            rot = (rot + 2) % 360
+            strokeGrad.Rotation = rot
+            task.wait()
         end
     end)
 
-    local CloseBtn = Instance.new("TextButton", MainFrame)
-    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-    CloseBtn.Position = UDim2.new(1, -35, 0, 10)
-    CloseBtn.BackgroundTransparency = 1
-    CloseBtn.Text = "X"
-    CloseBtn.TextColor3 = Theme.Crimson
-    CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.TextSize = 18
-    CloseBtn.ZIndex = 10
-    CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+    ---------------------------------------------------------------------------
+    -- FLOATING PARTICLES (background)
+    ---------------------------------------------------------------------------
+    local ParticleLayer = Instance.new("Frame", MainFrame)
+    ParticleLayer.Size = UDim2.new(1, 0, 1, 0)
+    ParticleLayer.BackgroundTransparency = 1
+    ParticleLayer.ClipsDescendants = true
+    ParticleLayer.ZIndex = 1
 
-    local Title = Instance.new("TextLabel", MainFrame)
-    Title.Size = UDim2.new(1, 0, 0, 50)
-    Title.Text = Config.HubName
-    Title.BackgroundColor3 = Theme.Panel
-    Title.BorderSizePixel = 0
-    Title.TextColor3 = Theme.Text
-    Title.Font = Enum.Font.Antique
-    Title.TextSize = 24
-    Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 12)
-    local titleGrad = Instance.new("UIGradient", Title)
-    titleGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Theme.Panel),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(44, 18, 44)),
-    })
+    local function SpawnParticle(initial)
+        local size = math.random(2, 5)
+        local p = Instance.new("Frame", ParticleLayer)
+        p.Size = UDim2.new(0, size, 0, size)
+        p.BorderSizePixel = 0
+        p.BackgroundColor3 = (math.random() > 0.5) and Theme.Crimson or Theme.Purple
+        p.BackgroundTransparency = 0.7
+        p.ZIndex = 1
+        Corner(p, 10)
+        local startX = math.random()
+        local startY = initial and math.random() or 1.05
+        p.Position = UDim2.new(startX, 0, startY, 0)
+        local dur = math.random(40, 90) / 10
+        local t = Tween(p, dur * startY, {
+            Position = UDim2.new(startX + (math.random() - 0.5) * 0.15, 0, -0.05, 0),
+            BackgroundTransparency = 1,
+        }, Enum.EasingStyle.Linear)
+        t.Completed:Connect(function() p:Destroy() end)
+    end
+    task.spawn(function()
+        for _ = 1, 14 do SpawnParticle(true) end
+        while ScreenGui.Parent do
+            SpawnParticle(false)
+            task.wait(0.35)
+        end
+    end)
 
-    -- Thin crimson divider under title
-    local Divider = Instance.new("Frame", MainFrame)
-    Divider.Size = UDim2.new(0.85, 0, 0, 2)
-    Divider.Position = UDim2.new(0.075, 0, 0, 52)
-    Divider.BorderSizePixel = 0
-    Divider.BackgroundColor3 = Theme.Crimson
-    local divGrad = Instance.new("UIGradient", Divider)
-    divGrad.Color = ColorSequence.new({
+    ---------------------------------------------------------------------------
+    -- HEADER
+    ---------------------------------------------------------------------------
+    local Header = Instance.new("Frame", MainFrame)
+    Header.Size = UDim2.new(1, 0, 0, 64)
+    Header.BackgroundTransparency = 1
+    Header.ZIndex = 3
+
+    -- Logo (circle with spinning gradient ring)
+    local Logo = Instance.new("Frame", Header)
+    Logo.Size = UDim2.new(0, 40, 0, 40)
+    Logo.Position = UDim2.new(0, 16, 0, 12)
+    Logo.BackgroundColor3 = Theme.Panel
+    Logo.ZIndex = 3
+    Corner(Logo, 20)
+    local logoStroke = Instance.new("UIStroke", Logo)
+    logoStroke.Thickness = 2
+    logoStroke.Color = Color3.new(1, 1, 1)
+    local logoGrad = Instance.new("UIGradient", logoStroke)
+    logoGrad.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Theme.Crimson),
         ColorSequenceKeypoint.new(1, Theme.Purple),
     })
+    task.spawn(function()
+        local r = 0
+        while ScreenGui.Parent do
+            r = (r + 4) % 360
+            logoGrad.Rotation = r
+            task.wait()
+        end
+    end)
+    local LogoText = Instance.new("TextLabel", Logo)
+    LogoText.Size = UDim2.new(1, 0, 1, 0)
+    LogoText.BackgroundTransparency = 1
+    LogoText.Text = string.upper(string.sub(Config.HubName, 1, 1))
+    LogoText.TextColor3 = Theme.Text
+    LogoText.Font = Enum.Font.GothamBlack
+    LogoText.TextSize = 20
+    LogoText.ZIndex = 4
 
-    local PromoText = Instance.new("TextLabel", MainFrame)
-    PromoText.Size = UDim2.new(0.9, 0, 0, 40)
-    PromoText.Position = UDim2.new(0.05, 0, 0, 58)
-    PromoText.BackgroundTransparency = 1
-    PromoText.Text = Config.HubDescription
-    PromoText.TextColor3 = Theme.SubText
-    PromoText.Font = Enum.Font.GothamMedium
-    PromoText.TextSize = 13
-    PromoText.TextWrapped = true
+    -- Title with shimmer
+    local Title = Instance.new("TextLabel", Header)
+    Title.Size = UDim2.new(0, 220, 0, 26)
+    Title.Position = UDim2.new(0, 66, 0, 10)
+    Title.BackgroundTransparency = 1
+    Title.Text = string.upper(Config.HubName)
+    Title.TextColor3 = Color3.new(1, 1, 1)
+    Title.Font = Enum.Font.GothamBlack
+    Title.TextSize = 20
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.ZIndex = 4
+    local titleGrad = Instance.new("UIGradient", Title)
+    titleGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.Crimson),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Theme.Purple),
+    })
+    task.spawn(function()
+        while ScreenGui.Parent do
+            titleGrad.Offset = Vector2.new(-1, 0)
+            local t = Tween(titleGrad, 2.2, {Offset = Vector2.new(1, 0)}, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            t.Completed:Wait()
+            task.wait(0.4)
+        end
+    end)
 
-    local function AddGlowStroke(parent, color)
-        local stroke = Instance.new("UIStroke", parent)
-        stroke.Thickness = 1.5
-        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        stroke.Color = color
-        stroke.Transparency = 0.35
-        return stroke
+    local SubTitle = Instance.new("TextLabel", Header)
+    SubTitle.Size = UDim2.new(0, 220, 0, 16)
+    SubTitle.Position = UDim2.new(0, 66, 0, 36)
+    SubTitle.BackgroundTransparency = 1
+    SubTitle.Text = Config.HubDescription
+    SubTitle.TextColor3 = Theme.SubText
+    SubTitle.Font = Enum.Font.GothamMedium
+    SubTitle.TextSize = 12
+    SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+    SubTitle.ZIndex = 4
+
+    -- Window buttons
+    local CloseBtn = Instance.new("TextButton", Header)
+    CloseBtn.Size = UDim2.new(0, 26, 0, 26)
+    CloseBtn.Position = UDim2.new(1, -36, 0, 8)
+    CloseBtn.BackgroundColor3 = Theme.Panel
+    CloseBtn.Text = "X"
+    CloseBtn.TextColor3 = Theme.Error
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 13
+    CloseBtn.AutoButtonColor = false
+    CloseBtn.ZIndex = 5
+    Corner(CloseBtn, 8)
+    CloseBtn.MouseEnter:Connect(function() Tween(CloseBtn, 0.15, {BackgroundColor3 = Theme.Error, TextColor3 = Theme.Text}) end)
+    CloseBtn.MouseLeave:Connect(function() Tween(CloseBtn, 0.15, {BackgroundColor3 = Theme.Panel, TextColor3 = Theme.Error}) end)
+    CloseBtn.MouseButton1Click:Connect(function()
+        Tween(Scale, 0.25, {Scale = 0.01}, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+        task.wait(0.28)
+        ScreenGui:Destroy()
+    end)
+
+    local MinBtn = Instance.new("TextButton", Header)
+    MinBtn.Size = UDim2.new(0, 26, 0, 26)
+    MinBtn.Position = UDim2.new(1, -68, 0, 8)
+    MinBtn.BackgroundColor3 = Theme.Panel
+    MinBtn.Text = "-"
+    MinBtn.TextColor3 = Theme.Warn
+    MinBtn.Font = Enum.Font.GothamBold
+    MinBtn.TextSize = 18
+    MinBtn.AutoButtonColor = false
+    MinBtn.ZIndex = 5
+    Corner(MinBtn, 8)
+    MinBtn.MouseEnter:Connect(function() Tween(MinBtn, 0.15, {BackgroundColor3 = Theme.Warn, TextColor3 = Theme.Background}) end)
+    MinBtn.MouseLeave:Connect(function() Tween(MinBtn, 0.15, {BackgroundColor3 = Theme.Panel, TextColor3 = Theme.Warn}) end)
+
+    -- Divider
+    local Divider = Instance.new("Frame", MainFrame)
+    Divider.Size = UDim2.new(0.9, 0, 0, 2)
+    Divider.Position = UDim2.new(0.05, 0, 0, 64)
+    Divider.BorderSizePixel = 0
+    Divider.BackgroundColor3 = Color3.new(1, 1, 1)
+    Divider.ZIndex = 3
+    local divGrad = Instance.new("UIGradient", Divider)
+    divGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+        ColorSequenceKeypoint.new(0.2, Theme.Crimson),
+        ColorSequenceKeypoint.new(0.8, Theme.Purple),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0)),
+    })
+
+    ---------------------------------------------------------------------------
+    -- DRAGGING
+    ---------------------------------------------------------------------------
+    do
+        local dragging, dragStart, startPos
+        Header.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = MainFrame.Position
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then dragging = false end
+                end)
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local delta = input.Position - dragStart
+                MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
+        end)
+    end
+
+    ---------------------------------------------------------------------------
+    -- CONTENT
+    ---------------------------------------------------------------------------
+    local Content = Instance.new("Frame", MainFrame)
+    Content.Size = UDim2.new(1, 0, 1, -72)
+    Content.Position = UDim2.new(0, 0, 0, 72)
+    Content.BackgroundTransparency = 1
+    Content.ZIndex = 3
+
+    local function Stroke(parent, color, thickness, transparency)
+        local s = Instance.new("UIStroke", parent)
+        s.Thickness = thickness or 1.5
+        s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        s.Color = color
+        s.Transparency = transparency or 0.4
+        return s
     end
 
     local function HoverEffect(btn, normal, hover)
-        btn.MouseEnter:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = hover}):Play()
-        end)
-        btn.MouseLeave:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = normal}):Play()
+        btn.MouseEnter:Connect(function() Tween(btn, 0.15, {BackgroundColor3 = hover}) end)
+        btn.MouseLeave:Connect(function() Tween(btn, 0.15, {BackgroundColor3 = normal}) end)
+    end
+
+    -- Ripple effect on click
+    local function Ripple(btn, color)
+        task.spawn(function()
+            local r = Instance.new("Frame", btn)
+            r.AnchorPoint = Vector2.new(0.5, 0.5)
+            r.Position = UDim2.new(0.5, 0, 0.5, 0)
+            r.Size = UDim2.new(0, 0, 0, 0)
+            r.BackgroundColor3 = color or Color3.new(1, 1, 1)
+            r.BackgroundTransparency = 0.6
+            r.BorderSizePixel = 0
+            r.ZIndex = btn.ZIndex + 1
+            Corner(r, 200)
+            Tween(r, 0.45, {Size = UDim2.new(0, 260, 0, 260), BackgroundTransparency = 1})
+            task.wait(0.5)
+            r:Destroy()
         end)
     end
 
-    local currentYOffset = 105
+    local currentY = 4
 
-    -- Social button builder
+    -- Social buttons
     local function AddSocialButton(label, color, iconId, url, copiedText, extra)
-        local Btn = Instance.new("TextButton", MainFrame)
-        Btn.Size = UDim2.new(0.85, 0, 0, 35)
-        Btn.Position = UDim2.new(0.075, 0, 0, currentYOffset)
+        local Btn = Instance.new("TextButton", Content)
+        Btn.Size = UDim2.new(0.9, 0, 0, 36)
+        Btn.Position = UDim2.new(0.05, 0, 0, currentY)
         Btn.Text = "      " .. label
         Btn.Font = Enum.Font.GothamBold
         Btn.TextSize = 13
         Btn.AutoButtonColor = false
         Btn.BackgroundColor3 = Theme.Panel
         Btn.TextColor3 = Theme.Text
-        Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
-        AddGlowStroke(Btn, color)
+        Btn.ClipsDescendants = true
+        Btn.ZIndex = 4
+        Corner(Btn, 10)
+        Stroke(Btn, color, 1.5, 0.4)
         HoverEffect(Btn, Theme.Panel, color)
 
         local Icon = Instance.new("ImageLabel", Btn)
@@ -311,18 +503,16 @@ local function CreateGUI()
         Icon.Position = UDim2.new(0.1, 0, 0.5, -10)
         Icon.BackgroundTransparency = 1
         Icon.Image = iconId
+        Icon.ZIndex = 5
 
         Btn.MouseButton1Click:Connect(function()
+            Ripple(Btn)
             fSetClipboard(url)
-            local StatusLbl = MainFrame:FindFirstChild("StatusLabel")
-            if StatusLbl then
-                StatusLbl.Text = copiedText
-                StatusLbl.TextColor3 = color
-            end
+            if _G.__BlairSetStatus then _G.__BlairSetStatus(copiedText, color) end
             if extra then extra() end
         end)
 
-        currentYOffset = currentYOffset + 45
+        currentY = currentY + 44
     end
 
     if Config.ShowDiscord then
@@ -333,19 +523,30 @@ local function CreateGUI()
             end
         end)
     end
-
     if Config.ShowInstagram then
-        AddSocialButton("FOLLOW INSTAGRAM", Theme.Crimson, "rbxassetid://18355586382", Config.InstagramURL, "Instagram Link Copied!")
+        AddSocialButton("FOLLOW INSTAGRAM", Theme.Pink, "rbxassetid://18355586382", Config.InstagramURL, "Instagram Link Copied!")
     end
-
     if Config.ShowYoutube then
         AddSocialButton("SUBSCRIBE YOUTUBE", Theme.Crimson, "rbxassetid://82532989017804", Config.YoutubeURL, "YouTube Link Copied!")
     end
 
-    local KeyInput = Instance.new("TextBox", MainFrame)
-    KeyInput.Size = UDim2.new(0.85, 0, 0, 40)
-    KeyInput.Position = UDim2.new(0.075, 0, 0, currentYOffset + 15)
-    KeyInput.PlaceholderText = "Enter Key..."
+    -- Key label
+    local KeyLabel = Instance.new("TextLabel", Content)
+    KeyLabel.Size = UDim2.new(0.9, 0, 0, 14)
+    KeyLabel.Position = UDim2.new(0.05, 0, 0, currentY + 6)
+    KeyLabel.BackgroundTransparency = 1
+    KeyLabel.Text = "LICENSE KEY"
+    KeyLabel.TextColor3 = Theme.SubText
+    KeyLabel.Font = Enum.Font.GothamBold
+    KeyLabel.TextSize = 11
+    KeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+    KeyLabel.ZIndex = 4
+
+    -- Key input
+    local KeyInput = Instance.new("TextBox", Content)
+    KeyInput.Size = UDim2.new(0.9, 0, 0, 44)
+    KeyInput.Position = UDim2.new(0.05, 0, 0, currentY + 24)
+    KeyInput.PlaceholderText = "Paste your key here..."
     KeyInput.PlaceholderColor3 = Theme.SubText
     KeyInput.Text = ""
     KeyInput.ClearTextOnFocus = false
@@ -353,103 +554,240 @@ local function CreateGUI()
     KeyInput.TextSize = 14
     KeyInput.BackgroundColor3 = Theme.Input
     KeyInput.TextColor3 = Theme.Text
-    Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 8)
-    local inputStroke = AddGlowStroke(KeyInput, Theme.Purple)
-    inputStroke.Transparency = 0.6
+    KeyInput.ZIndex = 4
+    Corner(KeyInput, 10)
+    local inputStroke = Stroke(KeyInput, Theme.Purple, 1.5, 0.6)
     KeyInput.Focused:Connect(function()
-        TweenService:Create(inputStroke, TweenInfo.new(0.15), {Transparency = 0, Color = Theme.Crimson}):Play()
+        Tween(inputStroke, 0.2, {Transparency = 0, Color = Theme.Pink})
     end)
     KeyInput.FocusLost:Connect(function()
-        TweenService:Create(inputStroke, TweenInfo.new(0.15), {Transparency = 0.6, Color = Theme.Purple}):Play()
+        Tween(inputStroke, 0.2, {Transparency = 0.6, Color = Theme.Purple})
     end)
 
-    local VerifyBtn = Instance.new("TextButton", MainFrame)
-    VerifyBtn.Size = UDim2.new(0.4, 0, 0, 40)
-    VerifyBtn.Position = UDim2.new(0.075, 0, 0, currentYOffset + 65)
-    VerifyBtn.Text = "VERIFY"
-    VerifyBtn.Font = Enum.Font.GothamBold
-    VerifyBtn.TextSize = 14
-    VerifyBtn.AutoButtonColor = false
-    VerifyBtn.BackgroundColor3 = Theme.Crimson
-    VerifyBtn.TextColor3 = Theme.Text
-    Instance.new("UICorner", VerifyBtn).CornerRadius = UDim.new(0, 8)
-    HoverEffect(VerifyBtn, Theme.Crimson, Color3.fromRGB(205, 45, 82))
+    -- Buttons
+    local function MakeButton(text, xScale, color, hoverColor)
+        local Btn = Instance.new("TextButton", Content)
+        Btn.Size = UDim2.new(0.435, 0, 0, 44)
+        Btn.Position = UDim2.new(xScale, 0, 0, currentY + 78)
+        Btn.Text = text
+        Btn.Font = Enum.Font.GothamBlack
+        Btn.TextSize = 14
+        Btn.AutoButtonColor = false
+        Btn.BackgroundColor3 = color
+        Btn.TextColor3 = Theme.Text
+        Btn.ClipsDescendants = true
+        Btn.ZIndex = 4
+        Corner(Btn, 10)
+        local g = Instance.new("UIGradient", Btn)
+        g.Rotation = 90
+        g.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 190, 190)),
+        })
+        HoverEffect(Btn, color, hoverColor)
+        return Btn
+    end
 
-    local GetKeyBtn = Instance.new("TextButton", MainFrame)
-    GetKeyBtn.Size = UDim2.new(0.4, 0, 0, 40)
-    GetKeyBtn.Position = UDim2.new(0.525, 0, 0, currentYOffset + 65)
-    GetKeyBtn.Text = "GET KEY"
-    GetKeyBtn.Font = Enum.Font.GothamBold
-    GetKeyBtn.TextSize = 14
-    GetKeyBtn.AutoButtonColor = false
-    GetKeyBtn.BackgroundColor3 = Theme.Purple
-    GetKeyBtn.TextColor3 = Theme.Text
-    Instance.new("UICorner", GetKeyBtn).CornerRadius = UDim.new(0, 8)
-    HoverEffect(GetKeyBtn, Theme.Purple, Color3.fromRGB(145, 85, 210))
+    local VerifyBtn = MakeButton("VERIFY", 0.05, Theme.Crimson, Color3.fromRGB(220, 50, 95))
+    local GetKeyBtn = MakeButton("GET KEY", 0.515, Theme.Purple, Color3.fromRGB(150, 85, 220))
 
-    local Status = Instance.new("TextLabel", MainFrame)
+    -- Loading bar
+    local BarTrack = Instance.new("Frame", Content)
+    BarTrack.Size = UDim2.new(0.9, 0, 0, 3)
+    BarTrack.Position = UDim2.new(0.05, 0, 0, currentY + 134)
+    BarTrack.BackgroundColor3 = Theme.Panel
+    BarTrack.BorderSizePixel = 0
+    BarTrack.ClipsDescendants = true
+    BarTrack.ZIndex = 4
+    Corner(BarTrack, 3)
+    local BarFill = Instance.new("Frame", BarTrack)
+    BarFill.Size = UDim2.new(0.35, 0, 1, 0)
+    BarFill.Position = UDim2.new(-0.4, 0, 0, 0)
+    BarFill.BackgroundColor3 = Color3.new(1, 1, 1)
+    BarFill.BorderSizePixel = 0
+    BarFill.Visible = false
+    BarFill.ZIndex = 5
+    Corner(BarFill, 3)
+    local barGrad = Instance.new("UIGradient", BarFill)
+    barGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.Crimson),
+        ColorSequenceKeypoint.new(1, Theme.Purple),
+    })
+
+    local loading = false
+    local function SetLoading(state)
+        loading = state
+        if state then
+            BarFill.Visible = true
+            task.spawn(function()
+                while loading and ScreenGui.Parent do
+                    BarFill.Position = UDim2.new(-0.4, 0, 0, 0)
+                    local t = Tween(BarFill, 0.8, {Position = UDim2.new(1.05, 0, 0, 0)}, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+                    t.Completed:Wait()
+                end
+                BarFill.Visible = false
+            end)
+        end
+    end
+
+    -- Status pill
+    local StatusPill = Instance.new("Frame", Content)
+    StatusPill.Size = UDim2.new(0.9, 0, 0, 28)
+    StatusPill.Position = UDim2.new(0.05, 0, 0, currentY + 146)
+    StatusPill.BackgroundColor3 = Theme.Panel
+    StatusPill.ZIndex = 4
+    Corner(StatusPill, 14)
+    local pillStroke = Stroke(StatusPill, Theme.SubText, 1, 0.7)
+
+    local StatusDot = Instance.new("Frame", StatusPill)
+    StatusDot.Size = UDim2.new(0, 8, 0, 8)
+    StatusDot.Position = UDim2.new(0, 12, 0.5, -4)
+    StatusDot.BackgroundColor3 = Theme.SubText
+    StatusDot.BorderSizePixel = 0
+    StatusDot.ZIndex = 5
+    Corner(StatusDot, 4)
+
+    local Status = Instance.new("TextLabel", StatusPill)
     Status.Name = "StatusLabel"
-    Status.Size = UDim2.new(1, 0, 0, 30)
-    Status.Position = UDim2.new(0, 0, 0, currentYOffset + 115)
+    Status.Size = UDim2.new(1, -34, 1, 0)
+    Status.Position = UDim2.new(0, 28, 0, 0)
     Status.BackgroundTransparency = 1
     Status.Text = "Waiting for input..."
     Status.TextColor3 = Theme.SubText
-    Status.Font = Enum.Font.Gotham
+    Status.Font = Enum.Font.GothamMedium
     Status.TextSize = 12
+    Status.TextXAlignment = Enum.TextXAlignment.Left
+    Status.ZIndex = 5
 
-    MainFrame.Size = UDim2.new(0, 340, 0, currentYOffset + 160)
+    local function SetStatus(text, color)
+        Status.Text = text
+        Tween(Status, 0.2, {TextColor3 = color})
+        Tween(StatusDot, 0.2, {BackgroundColor3 = color})
+        Tween(pillStroke, 0.2, {Color = color, Transparency = 0.3})
+    end
+    _G.__BlairSetStatus = SetStatus
+
+    -- Shake animation (invalid key)
+    local function Shake()
+        task.spawn(function()
+            local base = MainFrame.Position
+            for _, off in ipairs({12, -12, 8, -8, 4, -4, 0}) do
+                MainFrame.Position = UDim2.new(base.X.Scale, base.X.Offset + off, base.Y.Scale, base.Y.Offset)
+                task.wait(0.035)
+            end
+            MainFrame.Position = base
+        end)
+    end
+
+    local function FlashInput(color)
+        task.spawn(function()
+            inputStroke.Color = color
+            inputStroke.Transparency = 0
+            Tween(inputStroke, 0.15, {Color = color})
+            task.wait(1.2)
+            if not KeyInput:IsFocused() then
+                Tween(inputStroke, 0.3, {Color = Theme.Purple, Transparency = 0.6})
+            end
+        end)
+    end
+
+    -- Final sizes
+    local fullHeight = 72 + currentY + 188
+    MainFrame.Size = UDim2.new(0, 360, 0, fullHeight)
+    MainFrame.Position = UDim2.new(0.5, -180, 0.5, -fullHeight / 2)
+
+    -- Minimize toggle
+    local minimized = false
+    MinBtn.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        if minimized then
+            Content.Visible = false
+            Divider.Visible = false
+            Tween(MainFrame, 0.25, {Size = UDim2.new(0, 360, 0, 64)}, Enum.EasingStyle.Quint)
+            MinBtn.Text = "+"
+        else
+            Tween(MainFrame, 0.25, {Size = UDim2.new(0, 360, 0, fullHeight)}, Enum.EasingStyle.Quint)
+            task.wait(0.2)
+            Content.Visible = true
+            Divider.Visible = true
+            MinBtn.Text = "-"
+        end
+    end)
+
+    -- Intro animation
+    Tween(Scale, 0.55, {Scale = 1}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
+    ---------------------------------------------------------------------------
+    -- LOGIC
+    ---------------------------------------------------------------------------
+    local busy = false
+
+    local function OnSuccess(text)
+        SetLoading(false)
+        SetStatus(text, Theme.Success)
+        FlashInput(Theme.Success)
+        task.wait(0.8)
+        Tween(Scale, 0.3, {Scale = 0.01}, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+        task.wait(0.32)
+        ScreenGui:Destroy()
+        StartMainScript()
+    end
 
     VerifyBtn.MouseButton1Click:Connect(function()
-        local key = KeyInput.Text
+        if busy then return end
+        Ripple(VerifyBtn)
+        local key = KeyInput.Text:gsub("%s+", "")
         if key == "" then
-            Status.Text = "Enter a key!"
-            Status.TextColor3 = Theme.Warn
+            SetStatus("Enter a key!", Theme.Warn)
+            FlashInput(Theme.Warn)
+            Shake()
             return
         end
-        Status.Text = "Verifying..."
-        Status.TextColor3 = Theme.SubText
+        busy = true
+        SetStatus("Verifying...", Theme.Purple)
+        SetLoading(true)
         local success, msg = redeemKey(key)
         if success then
-            Status.Text = "Success! Loading..."
-            Status.TextColor3 = Theme.Success
-            task.wait(0.5)
-            ScreenGui:Destroy()
-            StartMainScript()
+            OnSuccess("Key Valid! Loading hub...")
         else
-            Status.Text = msg
-            Status.TextColor3 = Theme.Error
+            SetLoading(false)
+            SetStatus(msg, Theme.Error)
+            FlashInput(Theme.Error)
+            Shake()
+            busy = false
         end
     end)
 
     GetKeyBtn.MouseButton1Click:Connect(function()
-        Status.Text = "Getting Link..."
-        Status.TextColor3 = Theme.SubText
+        Ripple(GetKeyBtn)
+        SetStatus("Getting link...", Theme.Purple)
+        SetLoading(true)
         local success, link = cacheLink()
+        SetLoading(false)
         if success then
             fSetClipboard(link)
-            Status.Text = "Link Copied!"
-            Status.TextColor3 = Theme.Purple
+            SetStatus("Key link copied! Open it in your browser.", Theme.Pink)
         else
-            Status.Text = tostring(link)
-            Status.TextColor3 = Theme.Error
+            SetStatus(tostring(link), Theme.Error)
+            Shake()
         end
     end)
 
+    -- Auto-login with saved key
     if isfile and isfile(Config.KeyFileName) then
         local savedKey = readfile(Config.KeyFileName)
         if savedKey ~= "" then
-            Status.Text = "Found saved key, verifying..."
+            busy = true
+            SetStatus("Found saved key, verifying...", Theme.Purple)
+            SetLoading(true)
             task.spawn(function()
-                local success, msg = redeemKey(savedKey)
+                local success = redeemKey(savedKey)
                 if success then
-                    Status.Text = "Auto-login success!"
-                    Status.TextColor3 = Theme.Success
-                    task.wait(0.5)
-                    ScreenGui:Destroy()
-                    StartMainScript()
+                    OnSuccess("Auto-login success!")
                 else
-                    Status.Text = "Saved key expired or invalid."
-                    Status.TextColor3 = Theme.Warn
+                    SetLoading(false)
+                    SetStatus("Saved key expired or invalid.", Theme.Warn)
+                    busy = false
                 end
             end)
         end
