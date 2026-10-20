@@ -163,12 +163,31 @@ local function StartMainScript()
     loadstring(game:HttpGet(Config.MainScriptURL))()
 end
 
+-------------------------------------------------------------------------------
+--! BLAIR THEME GUI
+-------------------------------------------------------------------------------
+
 local function CreateGUI()
     local player = game:GetService("Players").LocalPlayer
     local coreGui = game:GetService("CoreGui")
+    local TweenService = game:GetService("TweenService")
     local targetParent = pcall(function() return coreGui end) and coreGui or player:WaitForChild("PlayerGui")
-    
+
     if targetParent:FindFirstChild("OYB_KeySystem") then targetParent.OYB_KeySystem:Destroy() end
+
+    -- BLAIR COLOR PALETTE (dito mo palitan ang kulay kung gusto mo)
+    local Theme = {
+        Background  = Color3.fromRGB(10, 8, 14),
+        Panel       = Color3.fromRGB(20, 15, 28),
+        Input       = Color3.fromRGB(26, 19, 36),
+        Crimson     = Color3.fromRGB(176, 28, 62),
+        Purple      = Color3.fromRGB(122, 62, 186),
+        Text        = Color3.fromRGB(235, 225, 240),
+        SubText     = Color3.fromRGB(150, 135, 165),
+        Success     = Color3.fromRGB(110, 220, 160),
+        Error       = Color3.fromRGB(235, 70, 90),
+        Warn        = Color3.fromRGB(240, 170, 80),
+    }
 
     local ScreenGui = Instance.new("ScreenGui", targetParent)
     ScreenGui.Name = "OYB_KeySystem"
@@ -177,21 +196,39 @@ local function CreateGUI()
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 340, 0, 420)
     MainFrame.Position = UDim2.new(0.5, -170, 0.5, -210)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    MainFrame.Active = true;
+    MainFrame.BackgroundColor3 = Theme.Background
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
     MainFrame.Draggable = true
-    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 15)
-    
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+
+    local bgGradient = Instance.new("UIGradient", MainFrame)
+    bgGradient.Rotation = 90
+    bgGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(26, 14, 34)),
+        ColorSequenceKeypoint.new(1, Theme.Background),
+    })
+
+    -- Glowing border (crimson <-> purple pulse)
     local mainStroke = Instance.new("UIStroke", MainFrame)
-    mainStroke.Thickness = 2;
-    mainStroke.Color = Color3.fromRGB(40, 40, 40)
+    mainStroke.Thickness = 2
+    mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    mainStroke.Color = Theme.Crimson
+    task.spawn(function()
+        while MainFrame.Parent do
+            TweenService:Create(mainStroke, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {Color = Theme.Purple}):Play()
+            task.wait(1.8)
+            TweenService:Create(mainStroke, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {Color = Theme.Crimson}):Play()
+            task.wait(1.8)
+        end
+    end)
 
     local CloseBtn = Instance.new("TextButton", MainFrame)
     CloseBtn.Size = UDim2.new(0, 30, 0, 30)
     CloseBtn.Position = UDim2.new(1, -35, 0, 10)
     CloseBtn.BackgroundTransparency = 1
     CloseBtn.Text = "X"
-    CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+    CloseBtn.TextColor3 = Theme.Crimson
     CloseBtn.Font = Enum.Font.GothamBold
     CloseBtn.TextSize = 18
     CloseBtn.ZIndex = 10
@@ -200,160 +237,155 @@ local function CreateGUI()
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 50)
     Title.Text = Config.HubName
-    Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Title.TextColor3 = Color3.fromRGB(0, 170, 255)
-    Title.Font = Enum.Font.GothamBold;
-    Title.TextSize = 16
-    Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 15)
+    Title.BackgroundColor3 = Theme.Panel
+    Title.BorderSizePixel = 0
+    Title.TextColor3 = Theme.Text
+    Title.Font = Enum.Font.Antique
+    Title.TextSize = 24
+    Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 12)
+    local titleGrad = Instance.new("UIGradient", Title)
+    titleGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.Panel),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(44, 18, 44)),
+    })
+
+    -- Thin crimson divider under title
+    local Divider = Instance.new("Frame", MainFrame)
+    Divider.Size = UDim2.new(0.85, 0, 0, 2)
+    Divider.Position = UDim2.new(0.075, 0, 0, 52)
+    Divider.BorderSizePixel = 0
+    Divider.BackgroundColor3 = Theme.Crimson
+    local divGrad = Instance.new("UIGradient", Divider)
+    divGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.Crimson),
+        ColorSequenceKeypoint.new(1, Theme.Purple),
+    })
 
     local PromoText = Instance.new("TextLabel", MainFrame)
-    PromoText.Size = UDim2.new(0.9, 0, 0, 50)
-    PromoText.Position = UDim2.new(0.05, 0, 0, 50)
+    PromoText.Size = UDim2.new(0.9, 0, 0, 40)
+    PromoText.Position = UDim2.new(0.05, 0, 0, 58)
     PromoText.BackgroundTransparency = 1
     PromoText.Text = Config.HubDescription
-    PromoText.TextColor3 = Color3.fromRGB(0, 170, 255)
-    PromoText.Font = Enum.Font.GothamBold;
-    PromoText.TextSize = 14
+    PromoText.TextColor3 = Theme.SubText
+    PromoText.Font = Enum.Font.GothamMedium
+    PromoText.TextSize = 13
     PromoText.TextWrapped = true
 
-    local function AddRainbowStroke(parent)
+    local function AddGlowStroke(parent, color)
         local stroke = Instance.new("UIStroke", parent)
-        stroke.Thickness = 2
+        stroke.Thickness = 1.5
         stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        task.spawn(function()
-            while task.wait() do
-                local hue = tick() % 5 / 5
-                stroke.Color = Color3.fromHSV(hue, 1, 1)
-            end
+        stroke.Color = color
+        stroke.Transparency = 0.35
+        return stroke
+    end
+
+    local function HoverEffect(btn, normal, hover)
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = hover}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = normal}):Play()
         end)
     end
 
     local currentYOffset = 105
 
-    if Config.ShowDiscord then
-        local DiscordBtn = Instance.new("TextButton", MainFrame)
-        DiscordBtn.Size = UDim2.new(0.85, 0, 0, 35)
-        DiscordBtn.Position = UDim2.new(0.075, 0, 0, currentYOffset)
-        DiscordBtn.Text = "      JOIN DISCORD"
-        DiscordBtn.Font = "GothamBold";
-        DiscordBtn.TextSize = 14
-        DiscordBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-        DiscordBtn.TextColor3 = Color3.new(1, 1, 1)
-        Instance.new("UICorner", DiscordBtn)
-        AddRainbowStroke(DiscordBtn)
+    -- Social button builder
+    local function AddSocialButton(label, color, iconId, url, copiedText, extra)
+        local Btn = Instance.new("TextButton", MainFrame)
+        Btn.Size = UDim2.new(0.85, 0, 0, 35)
+        Btn.Position = UDim2.new(0.075, 0, 0, currentYOffset)
+        Btn.Text = "      " .. label
+        Btn.Font = Enum.Font.GothamBold
+        Btn.TextSize = 13
+        Btn.AutoButtonColor = false
+        Btn.BackgroundColor3 = Theme.Panel
+        Btn.TextColor3 = Theme.Text
+        Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+        AddGlowStroke(Btn, color)
+        HoverEffect(Btn, Theme.Panel, color)
 
-        local DiscordIcon = Instance.new("ImageLabel", DiscordBtn)
-        DiscordIcon.Size = UDim2.new(0, 20, 0, 20)
-        DiscordIcon.Position = UDim2.new(0.1, 0, 0.5, -10)
-        DiscordIcon.BackgroundTransparency = 1
-        DiscordIcon.Image = "rbxassetid://18505728201"
-        
-        DiscordBtn.MouseButton1Click:Connect(function()
-            fSetClipboard(Config.DiscordURL)
-            local Status = MainFrame:FindFirstChild("StatusLabel")
-            if Status then 
-                Status.Text = "Discord Link Copied!"
-                Status.TextColor3 = Color3.fromRGB(88, 101, 242)
+        local Icon = Instance.new("ImageLabel", Btn)
+        Icon.Size = UDim2.new(0, 20, 0, 20)
+        Icon.Position = UDim2.new(0.1, 0, 0.5, -10)
+        Icon.BackgroundTransparency = 1
+        Icon.Image = iconId
+
+        Btn.MouseButton1Click:Connect(function()
+            fSetClipboard(url)
+            local StatusLbl = MainFrame:FindFirstChild("StatusLabel")
+            if StatusLbl then
+                StatusLbl.Text = copiedText
+                StatusLbl.TextColor3 = color
             end
+            if extra then extra() end
+        end)
+
+        currentYOffset = currentYOffset + 45
+    end
+
+    if Config.ShowDiscord then
+        AddSocialButton("JOIN DISCORD", Theme.Purple, "rbxassetid://18505728201", Config.DiscordURL, "Discord Link Copied!", function()
             local inviteCode = string.match(Config.DiscordURL, "discord%.gg/([%w-]+)")
             if syn and syn.request and inviteCode then
                 syn.request({Url = "http://localhost:1111/discord?invite=" .. inviteCode, Method = "GET"})
             end
         end)
-        
-        currentYOffset = currentYOffset + 45
     end
 
     if Config.ShowInstagram then
-        local InstaBtn = Instance.new("TextButton", MainFrame)
-        InstaBtn.Size = UDim2.new(0.85, 0, 0, 35)
-        InstaBtn.Position = UDim2.new(0.075, 0, 0, currentYOffset)
-        InstaBtn.Text = "      FOLLOW INSTAGRAM"
-        InstaBtn.Font = "GothamBold";
-        InstaBtn.TextSize = 14
-        InstaBtn.BackgroundColor3 = Color3.fromRGB(225, 48, 108)
-        InstaBtn.TextColor3 = Color3.new(1, 1, 1)
-        Instance.new("UICorner", InstaBtn)
-        AddRainbowStroke(InstaBtn)
-
-        local InstaIcon = Instance.new("ImageLabel", InstaBtn)
-        InstaIcon.Size = UDim2.new(0, 20, 0, 20)
-        InstaIcon.Position = UDim2.new(0.1, 0, 0.5, -10)
-        InstaIcon.BackgroundTransparency = 1
-        InstaIcon.Image = "rbxassetid://18355586382"
-        
-        InstaBtn.MouseButton1Click:Connect(function()
-            fSetClipboard(Config.InstagramURL)
-            local Status = MainFrame:FindFirstChild("StatusLabel")
-            if Status then 
-                Status.Text = "Instagram Link Copied!"
-                Status.TextColor3 = Color3.fromRGB(225, 48, 108)
-            end
-        end)
-        
-        currentYOffset = currentYOffset + 45
+        AddSocialButton("FOLLOW INSTAGRAM", Theme.Crimson, "rbxassetid://18355586382", Config.InstagramURL, "Instagram Link Copied!")
     end
-    
-    if Config.ShowYoutube then
-        local YTBtn = Instance.new("TextButton", MainFrame)
-        YTBtn.Size = UDim2.new(0.85, 0, 0, 35)
-        YTBtn.Position = UDim2.new(0.075, 0, 0, currentYOffset)
-        YTBtn.Text = "      SUBSCRIBE YOUTUBE"
-        YTBtn.Font = "GothamBold";
-        YTBtn.TextSize = 14
-        YTBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        YTBtn.TextColor3 = Color3.new(1, 1, 1)
-        Instance.new("UICorner", YTBtn)
-        AddRainbowStroke(YTBtn)
 
-        local YTIcon = Instance.new("ImageLabel", YTBtn)
-        YTIcon.Size = UDim2.new(0, 20, 0, 20)
-        YTIcon.Position = UDim2.new(0.1, 0, 0.5, -10)
-        YTIcon.BackgroundTransparency = 1
-        YTIcon.Image = "rbxassetid://82532989017804"
-        
-        YTBtn.MouseButton1Click:Connect(function()
-            fSetClipboard(Config.YoutubeURL)
-            local Status = MainFrame:FindFirstChild("StatusLabel")
-            if Status then
-                Status.Text = "YouTube Link Copied!"
-                Status.TextColor3 = Color3.fromRGB(255, 0, 0)
-            end
-        end)
-        
-        currentYOffset = currentYOffset + 45
+    if Config.ShowYoutube then
+        AddSocialButton("SUBSCRIBE YOUTUBE", Theme.Crimson, "rbxassetid://82532989017804", Config.YoutubeURL, "YouTube Link Copied!")
     end
 
     local KeyInput = Instance.new("TextBox", MainFrame)
     KeyInput.Size = UDim2.new(0.85, 0, 0, 40)
     KeyInput.Position = UDim2.new(0.075, 0, 0, currentYOffset + 15)
     KeyInput.PlaceholderText = "Enter Key..."
+    KeyInput.PlaceholderColor3 = Theme.SubText
     KeyInput.Text = ""
-    KeyInput.Font = Enum.Font.GothamSemibold;
+    KeyInput.ClearTextOnFocus = false
+    KeyInput.Font = Enum.Font.GothamSemibold
     KeyInput.TextSize = 14
-    KeyInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25);
-    KeyInput.TextColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", KeyInput)
+    KeyInput.BackgroundColor3 = Theme.Input
+    KeyInput.TextColor3 = Theme.Text
+    Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 8)
+    local inputStroke = AddGlowStroke(KeyInput, Theme.Purple)
+    inputStroke.Transparency = 0.6
+    KeyInput.Focused:Connect(function()
+        TweenService:Create(inputStroke, TweenInfo.new(0.15), {Transparency = 0, Color = Theme.Crimson}):Play()
+    end)
+    KeyInput.FocusLost:Connect(function()
+        TweenService:Create(inputStroke, TweenInfo.new(0.15), {Transparency = 0.6, Color = Theme.Purple}):Play()
+    end)
 
     local VerifyBtn = Instance.new("TextButton", MainFrame)
     VerifyBtn.Size = UDim2.new(0.4, 0, 0, 40)
     VerifyBtn.Position = UDim2.new(0.075, 0, 0, currentYOffset + 65)
     VerifyBtn.Text = "VERIFY"
-    VerifyBtn.Font = "GothamBold";
+    VerifyBtn.Font = Enum.Font.GothamBold
     VerifyBtn.TextSize = 14
-    VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255);
-    VerifyBtn.TextColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", VerifyBtn)
+    VerifyBtn.AutoButtonColor = false
+    VerifyBtn.BackgroundColor3 = Theme.Crimson
+    VerifyBtn.TextColor3 = Theme.Text
+    Instance.new("UICorner", VerifyBtn).CornerRadius = UDim.new(0, 8)
+    HoverEffect(VerifyBtn, Theme.Crimson, Color3.fromRGB(205, 45, 82))
 
     local GetKeyBtn = Instance.new("TextButton", MainFrame)
     GetKeyBtn.Size = UDim2.new(0.4, 0, 0, 40)
     GetKeyBtn.Position = UDim2.new(0.525, 0, 0, currentYOffset + 65)
     GetKeyBtn.Text = "GET KEY"
-    GetKeyBtn.Font = "GothamBold";
+    GetKeyBtn.Font = Enum.Font.GothamBold
     GetKeyBtn.TextSize = 14
-    GetKeyBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35);
-    GetKeyBtn.TextColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", GetKeyBtn)
+    GetKeyBtn.AutoButtonColor = false
+    GetKeyBtn.BackgroundColor3 = Theme.Purple
+    GetKeyBtn.TextColor3 = Theme.Text
+    Instance.new("UICorner", GetKeyBtn).CornerRadius = UDim.new(0, 8)
+    HoverEffect(GetKeyBtn, Theme.Purple, Color3.fromRGB(145, 85, 210))
 
     local Status = Instance.new("TextLabel", MainFrame)
     Status.Name = "StatusLabel"
@@ -361,39 +393,45 @@ local function CreateGUI()
     Status.Position = UDim2.new(0, 0, 0, currentYOffset + 115)
     Status.BackgroundTransparency = 1
     Status.Text = "Waiting for input..."
-    Status.TextColor3 = Color3.fromRGB(150, 150, 150)
-    Status.Font = Enum.Font.Gotham;
+    Status.TextColor3 = Theme.SubText
+    Status.Font = Enum.Font.Gotham
     Status.TextSize = 12
-    
+
     MainFrame.Size = UDim2.new(0, 340, 0, currentYOffset + 160)
 
     VerifyBtn.MouseButton1Click:Connect(function()
         local key = KeyInput.Text
-        if key == "" then Status.Text = "Enter a key!"; return end
+        if key == "" then
+            Status.Text = "Enter a key!"
+            Status.TextColor3 = Theme.Warn
+            return
+        end
         Status.Text = "Verifying..."
+        Status.TextColor3 = Theme.SubText
         local success, msg = redeemKey(key)
         if success then
             Status.Text = "Success! Loading..."
-            Status.TextColor3 = Color3.fromRGB(0, 255, 100)
+            Status.TextColor3 = Theme.Success
             task.wait(0.5)
             ScreenGui:Destroy()
             StartMainScript()
         else
             Status.Text = msg
-            Status.TextColor3 = Color3.fromRGB(255, 50, 50)
+            Status.TextColor3 = Theme.Error
         end
     end)
 
     GetKeyBtn.MouseButton1Click:Connect(function()
         Status.Text = "Getting Link..."
+        Status.TextColor3 = Theme.SubText
         local success, link = cacheLink()
         if success then
             fSetClipboard(link)
             Status.Text = "Link Copied!"
-            Status.TextColor3 = Color3.fromRGB(0, 170, 255)
+            Status.TextColor3 = Theme.Purple
         else
-            Status.Text = tostring(link) 
-            Status.TextColor3 = Color3.fromRGB(255, 100, 100)
+            Status.Text = tostring(link)
+            Status.TextColor3 = Theme.Error
         end
     end)
 
@@ -405,13 +443,13 @@ local function CreateGUI()
                 local success, msg = redeemKey(savedKey)
                 if success then
                     Status.Text = "Auto-login success!"
-                    Status.TextColor3 = Color3.fromRGB(0, 255, 100)
+                    Status.TextColor3 = Theme.Success
                     task.wait(0.5)
                     ScreenGui:Destroy()
                     StartMainScript()
                 else
                     Status.Text = "Saved key expired or invalid."
-                    Status.TextColor3 = Color3.fromRGB(255, 150, 0)
+                    Status.TextColor3 = Theme.Warn
                 end
             end)
         end
