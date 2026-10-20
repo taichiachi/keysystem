@@ -30,7 +30,7 @@ local Config = {
     YoutubeURL      = "https://www.youtube.com/channel/UCAlXXV1Hbvf7WbXARuVtiQ",
 
     -- [5] File System
-    KeyFileName     = "Mykey.txt", -- The name of the file where the valid key will be saved for auto-login
+    KeyFileName     = "BlairKey.txt", -- The name of the file where the valid key will be saved for auto-login
 
     -- [6] GUI Management
     OldGuiName      = "anything", -- Name of the old GUI to destroy if it's already open
@@ -38,7 +38,7 @@ local Config = {
 
     -- [7] Hub Information & UI Text
     HubName         = "Blair Hub", -- The main title shown at the top of the GUI
-    HubDescription  = "tisteng", -- The text shown below the title
+    HubDescription  = "Premium Script Hub", -- The text shown below the title
 
     -- [8] Keyless Whitelist (hindi na kailangan ng key ang mga nandito)
     KeylessUsers    = {
