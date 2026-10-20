@@ -42,11 +42,12 @@ local Config = {
 
     -- [8] Keyless Whitelist (hindi na kailangan ng key ang mga nandito)
     KeylessUsers    = {
-        "",
-        "",
+        -- username (sa loob ng quotes) O UserId (numero) ay pwede dito
     },
     KeylessUserIds  = {
-        8769059708, -- mas secure ito kaysa username (hindi nagbabago ang UserId)
+        8769059708, -- mas secure ang UserId kaysa username (hindi nagbabago)
+        121,
+        131,
     },
 }
 
@@ -941,11 +942,243 @@ end
 local player = game:GetService("Players").LocalPlayer
 local pGui = player:WaitForChild("PlayerGui")
 
+-------------------------------------------------------------------------------
+--! KEYLESS ANIMATION (checking whitelist -> access granted)
+-------------------------------------------------------------------------------
+local function PlayKeylessAnimation()
+    local TweenService = game:GetService("TweenService")
+    local plr = game:GetService("Players").LocalPlayer
+    local coreGui = game:GetService("CoreGui")
+    local parent = pcall(function() return coreGui end) and coreGui or plr:WaitForChild("PlayerGui")
+    if parent:FindFirstChild("OYB_KeylessCheck") then parent.OYB_KeylessCheck:Destroy() end
+
+    local Crimson = Color3.fromRGB(190, 30, 70)
+    local Purple  = Color3.fromRGB(125, 60, 195)
+    local Pink    = Color3.fromRGB(235, 80, 140)
+    local Panel   = Color3.fromRGB(19, 14, 27)
+    local TextCol = Color3.fromRGB(240, 230, 245)
+    local SubText = Color3.fromRGB(150, 135, 168)
+    local Success = Color3.fromRGB(100, 230, 160)
+
+    local function Tween(obj, t, props, style, dir)
+        local tw = TweenService:Create(obj, TweenInfo.new(t, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props)
+        tw:Play()
+        return tw
+    end
+    local function Corner(p, r)
+        local c = Instance.new("UICorner", p)
+        c.CornerRadius = UDim.new(0, r)
+        return c
+    end
+
+    local Gui = Instance.new("ScreenGui", parent)
+    Gui.Name = "OYB_KeylessCheck"
+    Gui.ResetOnSpawn = false
+    Gui.IgnoreGuiInset = true
+    Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local Overlay = Instance.new("Frame", Gui)
+    Overlay.Size = UDim2.new(1, 0, 1, 0)
+    Overlay.BackgroundColor3 = Color3.new(0, 0, 0)
+    Overlay.BackgroundTransparency = 1
+    Overlay.BorderSizePixel = 0
+    Tween(Overlay, 0.4, {BackgroundTransparency = 0.45})
+
+    local Card = Instance.new("Frame", Gui)
+    Card.AnchorPoint = Vector2.new(0.5, 0.5)
+    Card.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Card.Size = UDim2.new(0, 320, 0, 235)
+    Card.BackgroundColor3 = Color3.fromRGB(9, 7, 13)
+    Card.BorderSizePixel = 0
+    Card.ZIndex = 10
+    Corner(Card, 16)
+    local CardScale = Instance.new("UIScale", Card)
+    CardScale.Scale = 0.6
+    local cardGrad = Instance.new("UIGradient", Card)
+    cardGrad.Rotation = 90
+    cardGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(32, 14, 40)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(9, 7, 13)),
+    })
+    local cardStroke = Instance.new("UIStroke", Card)
+    cardStroke.Thickness = 2.5
+    cardStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    cardStroke.Color = Color3.new(1, 1, 1)
+    local cardStrokeGrad = Instance.new("UIGradient", cardStroke)
+    local function SetStrokeColors(a, b, c)
+        cardStrokeGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, a),
+            ColorSequenceKeypoint.new(0.5, b),
+            ColorSequenceKeypoint.new(1, c),
+        })
+    end
+    SetStrokeColors(Crimson, Purple, Pink)
+
+    local alive = true
+    task.spawn(function()
+        local r = 0
+        while alive and Gui.Parent do
+            r = (r + 4) % 360
+            cardStrokeGrad.Rotation = r
+            task.wait()
+        end
+    end)
+
+    -- Logo
+    local Logo = Instance.new("Frame", Card)
+    Logo.AnchorPoint = Vector2.new(0.5, 0.5)
+    Logo.Position = UDim2.new(0.5, 0, 0, 52)
+    Logo.Size = UDim2.new(0, 0, 0, 0)
+    Logo.BackgroundColor3 = Panel
+    Logo.ZIndex = 11
+    Corner(Logo, 50)
+    local logoStroke = Instance.new("UIStroke", Logo)
+    logoStroke.Thickness = 3
+    logoStroke.Color = Color3.new(1, 1, 1)
+    local logoGrad = Instance.new("UIGradient", logoStroke)
+    local function SetLogoColors(a, b)
+        logoGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, a),
+            ColorSequenceKeypoint.new(1, b),
+        })
+    end
+    SetLogoColors(Crimson, Purple)
+    task.spawn(function()
+        local r = 0
+        while alive and Gui.Parent do
+            r = (r + 6) % 360
+            logoGrad.Rotation = r
+            task.wait()
+        end
+    end)
+    local LogoText = Instance.new("TextLabel", Logo)
+    LogoText.Size = UDim2.new(1, 0, 1, 0)
+    LogoText.BackgroundTransparency = 1
+    LogoText.Text = string.upper(string.sub(Config.HubName, 1, 1))
+    LogoText.TextColor3 = TextCol
+    LogoText.Font = Enum.Font.GothamBlack
+    LogoText.TextSize = 32
+    LogoText.ZIndex = 12
+
+    -- Hub name
+    local NameLbl = Instance.new("TextLabel", Card)
+    NameLbl.AnchorPoint = Vector2.new(0.5, 0)
+    NameLbl.Position = UDim2.new(0.5, 0, 0, 98)
+    NameLbl.Size = UDim2.new(1, 0, 0, 30)
+    NameLbl.BackgroundTransparency = 1
+    NameLbl.Text = string.upper(Config.HubName)
+    NameLbl.TextColor3 = Color3.new(1, 1, 1)
+    NameLbl.Font = Enum.Font.GothamBlack
+    NameLbl.TextSize = 24
+    NameLbl.ZIndex = 12
+    NameLbl.TextTransparency = 1
+    local nameGrad = Instance.new("UIGradient", NameLbl)
+    nameGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Crimson),
+        ColorSequenceKeypoint.new(0.5, Color3.new(1, 1, 1)),
+        ColorSequenceKeypoint.new(1, Purple),
+    })
+
+    -- Player info line
+    local UserLbl = Instance.new("TextLabel", Card)
+    UserLbl.AnchorPoint = Vector2.new(0.5, 0)
+    UserLbl.Position = UDim2.new(0.5, 0, 0, 130)
+    UserLbl.Size = UDim2.new(1, 0, 0, 16)
+    UserLbl.BackgroundTransparency = 1
+    UserLbl.Text = "@" .. plr.Name .. "  |  ID: " .. tostring(plr.UserId)
+    UserLbl.TextColor3 = SubText
+    UserLbl.Font = Enum.Font.GothamMedium
+    UserLbl.TextSize = 12
+    UserLbl.ZIndex = 12
+    UserLbl.TextTransparency = 1
+
+    -- Progress bar
+    local Track = Instance.new("Frame", Card)
+    Track.AnchorPoint = Vector2.new(0.5, 0)
+    Track.Position = UDim2.new(0.5, 0, 0, 170)
+    Track.Size = UDim2.new(0, 230, 0, 4)
+    Track.BackgroundColor3 = Panel
+    Track.BorderSizePixel = 0
+    Track.ZIndex = 11
+    Corner(Track, 4)
+    local Fill = Instance.new("Frame", Track)
+    Fill.Size = UDim2.new(0, 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.new(1, 1, 1)
+    Fill.BorderSizePixel = 0
+    Fill.ZIndex = 12
+    Corner(Fill, 4)
+    local fillGrad = Instance.new("UIGradient", Fill)
+    local function SetFillColors(a, b)
+        fillGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, a),
+            ColorSequenceKeypoint.new(1, b),
+        })
+    end
+    SetFillColors(Crimson, Purple)
+
+    local Msg = Instance.new("TextLabel", Card)
+    Msg.AnchorPoint = Vector2.new(0.5, 0)
+    Msg.Position = UDim2.new(0.5, 0, 0, 184)
+    Msg.Size = UDim2.new(1, -20, 0, 36)
+    Msg.BackgroundTransparency = 1
+    Msg.Text = ""
+    Msg.TextColor3 = SubText
+    Msg.Font = Enum.Font.GothamMedium
+    Msg.TextSize = 13
+    Msg.TextWrapped = true
+    Msg.ZIndex = 12
+
+    -- Intro
+    Tween(CardScale, 0.5, {Scale = 1}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    task.wait(0.15)
+    Tween(Logo, 0.5, {Size = UDim2.new(0, 70, 0, 70)}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    task.wait(0.35)
+    Tween(NameLbl, 0.35, {TextTransparency = 0})
+    Tween(UserLbl, 0.35, {TextTransparency = 0})
+    task.wait(0.4)
+
+    -- Steps
+    Msg.Text = "Checking whitelist..."
+    Tween(Fill, 0.6, {Size = UDim2.new(0.35, 0, 1, 0)})
+    task.wait(0.7)
+
+    Msg.Text = "Verifying username & UserId..."
+    Tween(Fill, 0.6, {Size = UDim2.new(0.75, 0, 1, 0)})
+    task.wait(0.7)
+
+    Msg.Text = "Confirming access..."
+    Tween(Fill, 0.5, {Size = UDim2.new(1, 0, 1, 0)})
+    task.wait(0.6)
+
+    -- Access granted (green)
+    SetStrokeColors(Success, Color3.fromRGB(60, 190, 130), Success)
+    SetLogoColors(Success, Color3.fromRGB(60, 190, 130))
+    SetFillColors(Success, Color3.fromRGB(60, 190, 130))
+    Msg.TextColor3 = Success
+    Msg.Text = "Access granted! Welcome, " .. plr.Name
+    Tween(Logo, 0.15, {Size = UDim2.new(0, 80, 0, 80)}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    task.wait(0.15)
+    Tween(Logo, 0.2, {Size = UDim2.new(0, 70, 0, 70)})
+    task.wait(1.0)
+
+    -- Outro
+    alive = false
+    Tween(CardScale, 0.3, {Scale = 0.01}, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+    Tween(Overlay, 0.35, {BackgroundTransparency = 1})
+    task.wait(0.35)
+    Gui:Destroy()
+end
+
 -- Keyless check: kung nasa whitelist ang player, derecho na sa main script
 local function IsKeylessUser()
     local lname = string.lower(player.Name)
     for _, name in ipairs(Config.KeylessUsers or {}) do
-        if string.lower(tostring(name)) == lname then return true end
+        -- tumatanggap ng username ("Juan123") O UserId (12345678)
+        if type(name) == "number" then
+            if name == player.UserId then return true end
+        elseif string.lower(tostring(name)) == lname then
+            return true
+        end
     end
     for _, id in ipairs(Config.KeylessUserIds or {}) do
         if id == player.UserId then return true end
@@ -954,6 +1187,7 @@ local function IsKeylessUser()
 end
 
 if IsKeylessUser() then
+    PlayKeylessAnimation()
     StartMainScript()
     return
 end
