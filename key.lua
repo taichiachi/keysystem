@@ -38,7 +38,17 @@ local Config = {
 
     -- [7] Hub Information & UI Text
     HubName         = "Blair Hub", -- The main title shown at the top of the GUI
-    HubDescription  = "tisteng" -- The text shown below the title
+    HubDescription  = "tisteng", -- The text shown below the title
+
+    -- [8] Keyless Whitelist (hindi na kailangan ng key ang mga nandito)
+    KeylessUsers    = {
+        8769059708,
+        121,
+        131,
+    },
+    KeylessUserIds  = {
+        -- 12345678, -- mas secure ito kaysa username (hindi nagbabago ang UserId)
+    },
 }
 
 -------------------------------------------------------------------------------
@@ -931,6 +941,23 @@ end
 
 local player = game:GetService("Players").LocalPlayer
 local pGui = player:WaitForChild("PlayerGui")
+
+-- Keyless check: kung nasa whitelist ang player, derecho na sa main script
+local function IsKeylessUser()
+    local lname = string.lower(player.Name)
+    for _, name in ipairs(Config.KeylessUsers or {}) do
+        if string.lower(tostring(name)) == lname then return true end
+    end
+    for _, id in ipairs(Config.KeylessUserIds or {}) do
+        if id == player.UserId then return true end
+    end
+    return false
+end
+
+if IsKeylessUser() then
+    StartMainScript()
+    return
+end
 
 if pGui:FindFirstChild(Config.MainGuiName) then
     StartMainScript() 
