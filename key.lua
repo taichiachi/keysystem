@@ -42,12 +42,11 @@ local Config = {
 
     -- [8] Keyless Whitelist (hindi na kailangan ng key ang mga nandito)
     KeylessUsers    = {
-        8769059708,
-        121,
-        131,
+        "",
+        "",
     },
     KeylessUserIds  = {
-        -- 12345678, -- mas secure ito kaysa username (hindi nagbabago ang UserId)
+        8769059708, -- mas secure ito kaysa username (hindi nagbabago ang UserId)
     },
 }
 
