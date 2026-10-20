@@ -1,3 +1,13 @@
+--[[
+    ================================================================
+    [ OYB OFFICIAL | ROBLOX DEVELOPER ]
+    Website: https://oybofficial.com/
+    Builder: https://oybofficial.com/keysystem
+    YouTube: https://youtube.com/@OYBOfficial
+    Discord: https://discord.gg/kT55J724BK
+    ================================================================
+    BLAIR HUB - V2 UI
+]]
 local Config = {
     -- [1] PlatoBoost Settings
     ServiceId       = 35396, -- Your PlatoBoost Service ID
@@ -10,17 +20,17 @@ local Config = {
     MainScriptURL   = "https://raw.githubusercontent.com/taichiachi/keysystem/refs/heads/main/script.lua", -- The raw URL of your main script
     
     -- [4] Social Media Settings (Set to true to show, false to hide)
-    ShowDiscord     = true,
+    ShowDiscord     = false,
     DiscordURL      = "https://discord.gg/kT55J724B",
     
     ShowInstagram   = false,
     InstagramURL    = "https://www.instagram.com/oy0i/",
     
-    ShowYoutube     = true,
+    ShowYoutube     = false,
     YoutubeURL      = "https://www.youtube.com/channel/UCAlXXV1Hbvf7WbXARuVtiQ",
 
     -- [5] File System
-    KeyFileName     = "BlairKey.txt", -- The name of the file where the valid key will be saved for auto-login
+    KeyFileName     = "Mykey.txt", -- The name of the file where the valid key will be saved for auto-login
 
     -- [6] GUI Management
     OldGuiName      = "anything", -- Name of the old GUI to destroy if it's already open
@@ -28,7 +38,7 @@ local Config = {
 
     -- [7] Hub Information & UI Text
     HubName         = "Blair Hub", -- The main title shown at the top of the GUI
-    HubDescription  = "Verify your key to continue" -- The text shown below the title
+    HubDescription  = "tisteng" -- The text shown below the title
 }
 
 -------------------------------------------------------------------------------
@@ -195,7 +205,7 @@ local function CreateGUI()
     end
 
     local ScreenGui = Instance.new("ScreenGui", targetParent)
-    ScreenGui.Name = "Blair_KeySystem"
+    ScreenGui.Name = "OYB_KeySystem"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -704,8 +714,143 @@ local function CreateGUI()
         end
     end)
 
-    -- Intro animation
+    ---------------------------------------------------------------------------
+    -- INTRO SPLASH ANIMATION (lalabas pag ine-execute)
+    ---------------------------------------------------------------------------
+    MainFrame.Visible = false
+    ScreenGui.IgnoreGuiInset = true
+
+    local Overlay = Instance.new("Frame", ScreenGui)
+    Overlay.Size = UDim2.new(1, 0, 1, 0)
+    Overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Overlay.BackgroundTransparency = 1
+    Overlay.BorderSizePixel = 0
+    Overlay.ZIndex = 0
+    Tween(Overlay, 0.5, {BackgroundTransparency = 0.45})
+
+    local Splash = Instance.new("Frame", ScreenGui)
+    Splash.AnchorPoint = Vector2.new(0.5, 0.5)
+    Splash.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Splash.Size = UDim2.new(0, 300, 0, 220)
+    Splash.BackgroundTransparency = 1
+    Splash.ZIndex = 10
+    local SplashScale = Instance.new("UIScale", Splash)
+    SplashScale.Scale = 1
+
+    -- Logo na lumalaki + umiikot na ring
+    local SLogo = Instance.new("Frame", Splash)
+    SLogo.AnchorPoint = Vector2.new(0.5, 0.5)
+    SLogo.Position = UDim2.new(0.5, 0, 0, 50)
+    SLogo.Size = UDim2.new(0, 0, 0, 0)
+    SLogo.BackgroundColor3 = Theme.Panel
+    SLogo.ZIndex = 11
+    Corner(SLogo, 50)
+    local sLogoStroke = Instance.new("UIStroke", SLogo)
+    sLogoStroke.Thickness = 3
+    sLogoStroke.Color = Color3.new(1, 1, 1)
+    local sLogoGrad = Instance.new("UIGradient", sLogoStroke)
+    sLogoGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.Crimson),
+        ColorSequenceKeypoint.new(0.5, Theme.Purple),
+        ColorSequenceKeypoint.new(1, Theme.Pink),
+    })
+    local splashAlive = true
+    task.spawn(function()
+        local r = 0
+        while splashAlive and ScreenGui.Parent do
+            r = (r + 6) % 360
+            sLogoGrad.Rotation = r
+            task.wait()
+        end
+    end)
+    local SLogoText = Instance.new("TextLabel", SLogo)
+    SLogoText.Size = UDim2.new(1, 0, 1, 0)
+    SLogoText.BackgroundTransparency = 1
+    SLogoText.Text = string.upper(string.sub(Config.HubName, 1, 1))
+    SLogoText.TextColor3 = Theme.Text
+    SLogoText.TextTransparency = 1
+    SLogoText.Font = Enum.Font.GothamBlack
+    SLogoText.TextSize = 40
+    SLogoText.ZIndex = 12
+
+    Tween(SLogo, 0.6, {Size = UDim2.new(0, 84, 0, 84)}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    task.wait(0.3)
+    Tween(SLogoText, 0.4, {TextTransparency = 0})
+    task.wait(0.35)
+
+    -- Pangalan ng hub (typewriter)
+    local SName = Instance.new("TextLabel", Splash)
+    SName.AnchorPoint = Vector2.new(0.5, 0)
+    SName.Position = UDim2.new(0.5, 0, 0, 112)
+    SName.Size = UDim2.new(1, 0, 0, 34)
+    SName.BackgroundTransparency = 1
+    SName.Text = ""
+    SName.TextColor3 = Color3.new(1, 1, 1)
+    SName.Font = Enum.Font.GothamBlack
+    SName.TextSize = 28
+    SName.ZIndex = 12
+    local sNameGrad = Instance.new("UIGradient", SName)
+    sNameGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.Crimson),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Theme.Purple),
+    })
+    local fullName = string.upper(Config.HubName)
+    for i = 1, #fullName do
+        SName.Text = string.sub(fullName, 1, i)
+        task.wait(0.07)
+    end
+
+    -- Loading bar + status text
+    local STrack = Instance.new("Frame", Splash)
+    STrack.AnchorPoint = Vector2.new(0.5, 0)
+    STrack.Position = UDim2.new(0.5, 0, 0, 162)
+    STrack.Size = UDim2.new(0, 200, 0, 4)
+    STrack.BackgroundColor3 = Theme.Panel
+    STrack.BorderSizePixel = 0
+    STrack.ZIndex = 11
+    Corner(STrack, 4)
+    local SFill = Instance.new("Frame", STrack)
+    SFill.Size = UDim2.new(0, 0, 1, 0)
+    SFill.BackgroundColor3 = Color3.new(1, 1, 1)
+    SFill.BorderSizePixel = 0
+    SFill.ZIndex = 12
+    Corner(SFill, 4)
+    local sFillGrad = Instance.new("UIGradient", SFill)
+    sFillGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.Crimson),
+        ColorSequenceKeypoint.new(1, Theme.Purple),
+    })
+
+    local SMsg = Instance.new("TextLabel", Splash)
+    SMsg.AnchorPoint = Vector2.new(0.5, 0)
+    SMsg.Position = UDim2.new(0.5, 0, 0, 174)
+    SMsg.Size = UDim2.new(1, 0, 0, 18)
+    SMsg.BackgroundTransparency = 1
+    SMsg.Text = ""
+    SMsg.TextColor3 = Theme.SubText
+    SMsg.Font = Enum.Font.GothamMedium
+    SMsg.TextSize = 12
+    SMsg.ZIndex = 12
+
+    local introSteps = {"Initializing...", "Checking connection...", "Loading interface..."}
+    for i, msg in ipairs(introSteps) do
+        SMsg.Text = msg
+        Tween(SFill, 0.5, {Size = UDim2.new(i / #introSteps, 0, 1, 0)})
+        task.wait(0.55)
+    end
+    task.wait(0.15)
+
+    -- Splash exit -> lalabas yung key GUI
+    splashAlive = false
+    Tween(SplashScale, 0.3, {Scale = 0.01}, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+    Tween(Overlay, 0.4, {BackgroundTransparency = 1})
+    task.wait(0.32)
+    Splash:Destroy()
+    MainFrame.Visible = true
     Tween(Scale, 0.55, {Scale = 1}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    task.wait(0.4)
+    Overlay:Destroy()
 
     ---------------------------------------------------------------------------
     -- LOGIC
