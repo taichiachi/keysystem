@@ -1,13 +1,3 @@
---[[
-    ================================================================
-    [ OYB OFFICIAL | ROBLOX DEVELOPER ]
-    Website: https://oybofficial.com/
-    Builder: https://oybofficial.com/keysystem
-    YouTube: https://youtube.com/@OYBOfficial
-    Discord: https://discord.gg/kT55J724BK
-    ================================================================
-    BLAIR HUB - V2 UI
-]]
 local Config = {
     -- [1] PlatoBoost Settings
     ServiceId       = 35396, -- Your PlatoBoost Service ID
@@ -20,17 +10,17 @@ local Config = {
     MainScriptURL   = "https://raw.githubusercontent.com/taichiachi/keysystem/refs/heads/main/script.lua", -- The raw URL of your main script
     
     -- [4] Social Media Settings (Set to true to show, false to hide)
-    ShowDiscord     = false,
+    ShowDiscord     = true,
     DiscordURL      = "https://discord.gg/kT55J724B",
     
     ShowInstagram   = false,
     InstagramURL    = "https://www.instagram.com/oy0i/",
     
-    ShowYoutube     = false,
+    ShowYoutube     = true,
     YoutubeURL      = "https://www.youtube.com/channel/UCAlXXV1Hbvf7WbXARuVtiQ",
 
     -- [5] File System
-    KeyFileName     = "Mykey.txt", -- The name of the file where the valid key will be saved for auto-login
+    KeyFileName     = "BlairKey.txt", -- The name of the file where the valid key will be saved for auto-login
 
     -- [6] GUI Management
     OldGuiName      = "anything", -- Name of the old GUI to destroy if it's already open
@@ -38,7 +28,7 @@ local Config = {
 
     -- [7] Hub Information & UI Text
     HubName         = "Blair Hub", -- The main title shown at the top of the GUI
-    HubDescription  = "tisteng" -- The text shown below the title
+    HubDescription  = "Verify your key to continue" -- The text shown below the title
 }
 
 -------------------------------------------------------------------------------
@@ -205,7 +195,7 @@ local function CreateGUI()
     end
 
     local ScreenGui = Instance.new("ScreenGui", targetParent)
-    ScreenGui.Name = "OYB_KeySystem"
+    ScreenGui.Name = "Blair_KeySystem"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
